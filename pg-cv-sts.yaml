@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgsql-app
+spec:
+  serviceName: "pgsql-app"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pgsql-app
+  template:
+    metadata:
+      labels:
+        app: pgsql-app
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:10.14
+        envFrom:
+          - configMapRef:
+              name: postgres-config
+        ports:
+        - containerPort: 5432
+          name: postgredb
+        volumeMounts:
+        - name: postgredb
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres
+      - name: commvault-pgsqlagent
+        image: gkkubernet1:5000/commvault:11.22.832
+        command: ['/sbin/init']
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c" , "cp /opt/commvault/Base/FwConfig* /etc/CommVaultRegistry/Galaxy/FwConfig/"]
+        envFrom:
+        - configMapRef:
+            name: cvconfigmap
+        volumeMounts:
+        - name: commvault-env-store2
+          mountPath: /opt/cvdocker_env
+          readOnly: true
+        - name: commvault-config-store2
+          mountPath: /etc/CommVaultRegistry
+          subPath: Registry
+        - name: commvault-config-store2
+          mountPath: /var/log/commvault/Log_Files
+          subPath: Log_Files
+        - name: commvault-config-store2
+          mountPath: /opt/commvault/MediaAgent/IndexCache
+          subPath: IndexCache
+        - name: commvault-config-store2
+          mountPath: /opt/commvault/iDataAgent/jobResults
+          subPath: jobResults
+        - name: commvault-config-store2
+          mountPath: /opt/commvault/Base/certificates
+          subPath: certificates
+        - name: postgredb
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres
+        - name: commcell-secret
+          mountPath: /opt/commcell_secret
+        ports:
+        - name: cvdport
+          containerPort: 8400
+      volumes:
+       - name: commcell-secret
+         secret:
+           secretName: commcell-secret
+       - name: commvault-env-store2
+         configMap:
+           name: cvconfigmap
+  volumeClaimTemplates:
+  - metadata:
+      name: postgredb
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: rook-ceph-block 
+      resources:
+        requests:
+          storage: 10Gi
+  - metadata:
+      name: commvault-config-store2
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: rook-ceph-block
+      resources:
+        requests:
+          storage: 3Gi
