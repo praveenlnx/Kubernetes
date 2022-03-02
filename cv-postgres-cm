@@ -1,0 +1,12 @@
+---
+# Source: commvault/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cvconfigmap
+data:
+  CV_MASVCNAME: commvault-prod
+  CV_CSHOSTNAME: "tipcs.idcprodcert.loc" 
+  CV_CSIPADDR: "172.16.196.78" 
+  CV_CSCLIENTNAME: "tipcs" 
+  CV_CLIENT_ROLE: "postgres"
